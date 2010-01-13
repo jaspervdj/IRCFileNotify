@@ -59,7 +59,7 @@ class IRCFileBot
   def connection
     socket = TCPSocket.open(@server,@port)
     socket.puts "NICK #{@bot_name}"
-    socket.puts "USER #{@nick.down_case} ignored ignored :#{@bot_name}"
+    socket.puts "USER #{@bot_name.downcase} ignored ignored :#{@bot_name}"
     
     # apparently we need to respond to a PING
     until socket.eof?
@@ -79,4 +79,6 @@ class IRCFileBot
   end
 end
 
-
+# Main
+bot = IRCFileBot.new "wina.ugent.be", "ZeusFileBot", "#zeus", 6666, "/srv/ftp"
+bot.run
