@@ -44,13 +44,17 @@ class IRCFileBot
   
   def run
     @watcher.watch do |files|
-      connection do |conn|
-        conn.puts "PRIVMSG #{@channel} :#{files.join ", "} were added"
-      end
+      files_added(files)
     end
   end
   
   private
+  
+  def files_added(files)
+    connection do |conn|
+      conn.puts "PRIVMSG #{@channel} :#{files.join ", "} were added"
+    end
+  end
   
   def connection
     socket = TCPSocket.open(@server,@port)
@@ -73,8 +77,6 @@ class IRCFileBot
     socket.puts "QUIT"
     
   end
-  
-  
 end
 
 
