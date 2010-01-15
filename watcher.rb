@@ -43,13 +43,15 @@ class IRCSocket < TCPSocket
     super server,port
     @nick,@channel = nick,channel
     @verbose = verbose
+
+    connect
   end
   
   # override puts and gets
   # if verbose they will print to the terminal
   def gets
     result = super
-    puts result if verbose
+    $stdout.puts result if verbose
     result
   end
   
@@ -57,7 +59,7 @@ class IRCSocket < TCPSocket
     # if args is nil, were not supposed to crash
     # we make sure we don't print when it is
     # and let super take care of the error
-    puts args.first if verbose && ! args.first.nil?
+    $stdout.puts args.first if verbose && ! args.first.nil?
     super
   end
   
@@ -106,7 +108,7 @@ class IRCFileBot
   def initialize(server,bot_name,channel,port,directory)
     @server,@bot_name,@channel,@port = server,bot_name,channel,port
     @watcher = Watcher.new(directory)
-    @ircsocket = IRCSocket.new server,port,channel,bot_name
+    @ircsocket = IRCSocket.new server,port,channel,bot_name,true
   end
   
   def run
@@ -116,13 +118,17 @@ class IRCFileBot
     end
   end
   
+  def interrupt
+    @ircsocket.close
+  end
+  
   private
   
   def files_added(files)
     @ircsocket.join
     sleep 1
-    @ircsocket.say "#{files.join ", "} were added"
-    sleep 2
+    @ircsocket.say "#{files.join ", "} #{files.size == 1 ? "was" : "were"} added"
+    sleep 1
     @ircsocket.leave
   end
 
@@ -130,6 +136,7 @@ end
 
 # Main
 if __FILE__ == $0
-  bot = IRCFileBot.new "wina.ugent.be", "ZeusFileBot", "#zeus", 6666, "/tmp"
+  bot = IRCFileBot.new "wina.ugent.be", "NuddedTestBot", "#zeus", 6666, Dir.pwd
+  trap("INT") {bot.interrupt}
   bot.run
 end
