@@ -17,11 +17,10 @@ class Watcher
         files = get_files
         diff = files - old_files
         
-        # yield with all the added files
+        # yield with all the added files (possibly empty)
         yield diff
        
         old_files = files
-        sleep 1
       end
       
     end
@@ -40,45 +39,57 @@ class IRCFileBot
   def initialize(server,bot_name,channel,port,directory)
     @server,@bot_name,@channel,@port = server,bot_name,channel,port
     @watcher = Watcher.new(directory)
+
+		connect
   end
   
   def run
     @watcher.watch do |files|
-      files_added(files)
+      mainloop(files)
+			sleep 1
     end
   end
   
   private
-  
-  def files_added(files)
-    connection do |conn|
-      conn.puts "PRIVMSG #{@channel} :#{files.join ", "} were added"
-    end
+
+  def pipe(content)
+  	puts content
+		content
   end
   
-  def connection
-    socket = TCPSocket.open(@server,@port)
-    socket.puts "NICK #{@bot_name}"
-    socket.puts "USER #{@bot_name.downcase} ignored ignored :#{@bot_name}"
-    
-    # apparently we need to respond to a PING
-    until socket.eof?
-      if socket.gets =~ /PING :(.*)$/
-        socket.puts "PONG :#{$1}"
-      end
-    end
-    
-    socket.puts "JOIN #{@channel}"
-    
-    sleep 5
-    yield socket
-    
-    socket.puts "PART #{@channel} :that's all folks"
-    socket.puts "QUIT"
-    
-  end
+	def connect
+		@socket = TCPSocket.open(@server,@port)
+		@socket.puts pipe "NICK #{@bot_name}"
+		@socket.puts pipe "USER #{@bot_name.downcase} ignored ignored :#{@bot_name}"
+
+		@listenthread = Thread.new(@socket) do |socket|
+			until @socket.eof?
+      	if pipe(@socket.gets) =~ /PING :(.*)$/
+        	@socket.puts pipe "PONG :#{$1}"
+	      end
+  	  end
+		end
+	end
+
+	def mainloop(files)
+		unless files.empty?
+			@socket.puts pipe "JOIN #{@channel}"
+			sleep 1
+			@socket.puts pipe "PRIVMSG #{@channel} :#{files.join ", "} were added"
+			sleep 1
+			@socket.puts pipe "PART #{@channel}"
+		end
+	end
+
+	def disconnect
+		@socket.puts pipe "QUIT"
+		@socket.close			# Probably exception due to socket.gets while closing 
+		@listenthread.join
+	end
 end
 
 # Main
-bot = IRCFileBot.new "wina.ugent.be", "ZeusFileBot", "#zeus", 6666, "/srv/ftp"
-bot.run
+if __FILE__ == $0
+	bot = IRCFileBot.new "wina.ugent.be", "ZeusFileBot", "#zeus", 6666, "/tmp"
+	bot.run
+end
