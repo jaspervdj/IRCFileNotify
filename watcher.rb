@@ -22,6 +22,7 @@ class Watcher
         yield diff if diff.size > 0
        
         old_files = files
+        sleep 1
       end
       
     end
