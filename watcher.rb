@@ -60,7 +60,7 @@ class IRCFileBot
   def files_added(files)
     @ircsocket.join
     sleep 1
-    @ircsocket.say "#{files.join ", "} #{files.size == 1 ? "was" : "were"} added"
+    @ircsocket.say "update: #{files.join ", "} #{files.size == 1 ? "was" : "were"} added"
     sleep 1
     @ircsocket.leave
   end
